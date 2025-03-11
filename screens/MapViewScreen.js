@@ -1,29 +1,35 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
 export default function MapViewScreen({ route }) {
-  const { location } = route.params || {};
+  const [location, setLocation] = useState(null);
+
+  useEffect(() => {
+    if (route.params?.location) {
+      setLocation(route.params.location);
+    }
+  }, [route.params]);
+  
 
   return (
     <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: location?.latitude || 60.1695,
-          longitude: location?.longitude || 24.9354,
-          latitudeDelta: 0.1,
-          longitudeDelta: 0.1,
-        }}
-      >
-        {location && (
-          <Marker
-            coordinate={{ latitude: location.latitude, longitude: location.longitude }}
-            title={location.name}
-            description={location.description}
-          />
-        )}
-      </MapView>
+      {location ? (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: location?.latitude || 60.1695,
+            longitude: location?.longitude || 24.9354,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          }}
+          
+        >
+          <Marker coordinate={{ latitude: location.latitude, longitude: location.longitude }} title="Selected Location" />
+        </MapView>
+      ) : (
+        <Text style={styles.errorText}>No location data available.</Text>
+      )}
     </View>
   );
 }
@@ -31,4 +37,5 @@ export default function MapViewScreen({ route }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
+  errorText: { textAlign: 'center', fontSize: 18, marginTop: 20, color: 'red' },
 });

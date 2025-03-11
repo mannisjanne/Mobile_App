@@ -1,70 +1,88 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { addTodo } from '../firebase/FirestoreController';
 
-export default function AddLocation({ navigation, route }) {
-  if (!route?.params?.addLocation) {
-    console.error('❌ Virhe: addLocation-funktio puuttuu route.params-objektista.');
-    return null;
-  }
+// Muista korvata YOUR_API_KEY omalla avaimellasi
+const OPENCAGE_API_KEY = 'YOUR_API_KEY';
 
-  const { addLocation } = route.params;
-
+export default function AddLocation() {
+  const navigation = useNavigation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState('');
 
-  const handleStarPress = (star) => {
-    console.log('⭐ Valittu tähtimäärä:', star);
-    setRating(star);
+  // Hakee koordinaatit annetun osoitteen perusteella
+  const getCoordinates = async (address) => {
+    try {
+      const response = await fetch(
+        `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(address)}&key=${OPENCAGE_API_KEY}`
+      );
+      const data = await response.json();
+      if (data.results.length > 0) {
+        const { lat, lng } = data.results[0].geometry;
+        return { latitude: lat, longitude: lng };
+      } else {
+        throw new Error('Sijaintia ei löytynyt.');
+      }
+    } catch (error) {
+      console.error('Geokoodausvirhe:', error);
+      Alert.alert('Virhe', 'Sijaintia ei voitu hakea.');
+      return null;
+    }
   };
 
-  const handleSubmit = () => {
-    if (!name.trim() || !description.trim()) {
-      alert('Täytä nimi ja kuvaus!');
+  // Käsittelee sijainnin tallentamisen
+  const handleSubmit = async () => {
+    if (!name.trim() || !description.trim() || !rating.trim()) {
+      Alert.alert('Virhe', 'Täytä kaikki kentät!');
       return;
     }
 
-    const newLocation = {
-      name,
-      description,
-      rating: rating || 0,
-    };
+    try {
+      const coords = await getCoordinates(name);
+      if (!coords) return; // Lopeta, jos geokoodaus epäonnistui
 
-    console.log('✅ Uusi sijainti lisätään:', newLocation);
-    addLocation(newLocation);
-    navigation.goBack();
+      await addTodo({
+        name,
+        description,
+        rating: parseFloat(rating),
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+
+      Alert.alert('Onnistui', 'Sijainti lisätty!');
+      navigation.goBack();
+    } catch (error) {
+      console.error('Firestore-virhe:', error);
+      Alert.alert('Virhe', 'Tallennus epäonnistui.');
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>➕ Lisää uusi sijainti</Text>
-      <Text style={styles.label}>Sijainnin nimi:</Text>
-      <TextInput style={styles.input} placeholder="Esim. Helsinki" value={name} onChangeText={setName} />
-      <Text style={styles.label}>Kuvaus:</Text>
-      <TextInput style={styles.input} placeholder="Kuvaile paikkaa lyhyesti" value={description} onChangeText={setDescription} multiline />
-      <Text style={styles.label}>Arvostelu (0-5 tähteä):</Text>
-      <View style={styles.starContainer}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity key={star} onPress={() => handleStarPress(star)}>
-            <Text style={star <= rating ? styles.starFilled : styles.starEmpty}>★</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
-        <Text style={styles.saveButtonText}>💾 Tallenna sijainti</Text>
-      </TouchableOpacity>
+      <Text style={styles.label}>Nimi</Text>
+      <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Paikan nimi" />
+
+      <Text style={styles.label}>Kuvaus</Text>
+      <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="Lyhyt kuvaus" />
+
+      <Text style={styles.label}>Arvio (1-5)</Text>
+      <TextInput
+        style={styles.input}
+        value={rating}
+        onChangeText={setRating}
+        placeholder="Anna arvio (1-5)"
+        keyboardType="numeric"
+      />
+
+      <Button title="Lisää sijainti" onPress={handleSubmit} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB' },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#1F2937', marginBottom: 20, textAlign: 'center' },
-  label: { fontSize: 16, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 16, backgroundColor: '#FFFFFF' },
-  starContainer: { flexDirection: 'row', marginBottom: 20 },
-  starFilled: { color: '#FACC15', fontSize: 32, marginRight: 5 },
-  starEmpty: { color: '#D1D5DB', fontSize: 32, marginRight: 5 },
-  saveButton: { backgroundColor: '#2563EB', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 20 },
-  saveButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '600' },
+  label: { fontSize: 16, fontWeight: 'bold', marginTop: 10 },
+  input: { borderWidth: 1, borderColor: '#D1D5DB', padding: 10, borderRadius: 8, marginTop: 5 },
 });

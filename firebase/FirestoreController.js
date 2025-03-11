@@ -1,26 +1,25 @@
-import { addDoc, collection, onSnapshot, query, QuerySnaphot } from "firebase/firestore";
-import { useEffect, useState } from "react";
-import { db, TODOS_REF } from "./Config";
+import { collection, addDoc, onSnapshot } from 'firebase/firestore';
+import { db } from './Config';
 
-export function useFireTodos(){
-    const [todos, setTodos] = useState([]);
+// 🔹 Kuunnellaan Firestorea reaaliaikaisesti
+export const listenToLocations = (setLocations) => {
+  const q = collection(db, 'locations');
 
-    useEffect(()=>{
-        const q = query(collection(db, TODOS_REF));
+  return onSnapshot(q, (snapshot) => {
+    const locationsArray = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setLocations(locationsArray);
+  }, (error) => {
+    console.error('❌ Virhe kuunnellessa Firestorea:', error);
+  });
+};
 
-        onSnapshot(q, querySnaphot => {
-            setTodos( querySnaphot.docs.map(doc => {
-                return { id: doc.id, ...doc.data() }
-            }));
-        });
-    }, []);
-
-    return todos;
-}
-
-export function addTodo(todoText){
-
-    if(todoText.trim() !== '')
-    addDoc( collection(db, TODOS_REF), {done:false, todoText } )
-        .catch(error => console.log(error.message));
+// 🔹 Funktio sijainnin tallentamiseen Firestoreen
+export const addTodo = async (location) => {
+  try {
+    await addDoc(collection(db, 'locations'), location);
+    console.log('✅ Sijainti tallennettu Firestoreen:', location);
+  } catch (error) {
+    console.error('❌ Virhe tallennettaessa Firestoreen:', error);
+    throw error;
+  }
 };

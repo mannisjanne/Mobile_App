@@ -10,7 +10,15 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "extra":{
+        "EXPO_PUBLIC_API_KEY": "AIzaSyBfKmeEy7g9Sk2V90MFt61PHDbOlu3kNqU",
+        "EXPO_PUBLIC_AUTH_DOMAIN": "todo-8cceb.firebaseapp.com",
+        "EXPO_PUBLIC_PROJECT_ID": "todo-8cceb",
+        "EXPO_PUBLIC_BUCKET": "todo-8cceb.firebasestorage.app",
+        "EXPO_PUBLIC_MSG_SENDER_ID": "560076519472",
+        "EXPO_PUBLIC_APP_ID": "560076519472:web:63528d2fc3d97960aa55f5"
+      }
     },
     "ios": {
       "supportsTablet": true

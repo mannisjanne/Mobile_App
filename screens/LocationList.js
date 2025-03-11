@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Ikonikirjasto
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { listenToLocations } from '../firebase/FirestoreController';
 
 const StarRating = ({ rating }) => {
   const stars = [];
@@ -14,22 +16,21 @@ const StarRating = ({ rating }) => {
   return <View style={styles.starContainer}>{stars}</View>;
 };
 
-export default function LocationList({ navigation }) {
-  const [locations, setLocations] = useState([
-    { name: 'Oulu', description: 'Kaunis pohjoinen kaupunki', rating: 4, latitude: 65.0121, longitude: 25.4651 },
-    { name: 'New York', description: 'Suurkaupunki täynnä elämää', rating: 5, latitude: 40.7128, longitude: -74.0060 },
-  ]);
+export default function ListLocations() {
+  const navigation = useNavigation();
+  const [locations, setLocations] = useState([]);
 
-  const addLocation = (newLocation) => {
-    setLocations([...locations, newLocation]);
-  };
+  useEffect(() => {
+    const unsubscribe = listenToLocations(setLocations);
+    return () => unsubscribe();
+  }, []);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>📍 Sijaintilista</Text>
       <FlatList
         data={locations}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.locationCard}>
             <View style={styles.textContainer}>
@@ -40,6 +41,7 @@ export default function LocationList({ navigation }) {
             <TouchableOpacity 
               style={styles.iconButton} 
               onPress={() => navigation.navigate('MapViewScreen', { location: item })}
+
             >
               <Ionicons name="location-outline" size={24} color="#10B981" />
             </TouchableOpacity>
@@ -48,7 +50,7 @@ export default function LocationList({ navigation }) {
       />
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => navigation.navigate('AddLocation', { addLocation })}
+        onPress={() => navigation.navigate('AddLocation')}
       >
         <Text style={styles.addButtonText}>➕ Lisää sijainti</Text>
       </TouchableOpacity>
